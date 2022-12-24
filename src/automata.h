@@ -1,0 +1,1 @@
+int automata_loop(int argc, char** argv);

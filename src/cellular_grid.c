@@ -43,8 +43,8 @@ int set_cell(cellular_grid CG, int x, int y, int new_value){
     return set_bit(CG->grid,x+1,y+1,new_value>0);
 }
 
-int* get_wall(cellular_grid CG, enum side s){
-    int* values;
+bit* get_wall(cellular_grid CG, enum side s){
+    bit* values;
     switch (s){
     case North:
         values = malloc(sizeof(int)*CG->inner_width);
@@ -109,6 +109,7 @@ void next_generation(cellular_grid CG){
 }
 
 void print_cell_grid(cellular_grid CG){
+    printf("\e[1;1H\e[2J");
     for(int y=0; y<CG->inner_height; y++){
         for(int x=0; x<CG->inner_width; x++){
             if(get_cell(CG,x,y)>0)

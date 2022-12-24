@@ -30,7 +30,7 @@ int get_cell(cellular_grid CG, int x, int y);
 
 int set_cell(cellular_grid CG, int x, int y, int new_value);
 
-int* get_wall(cellular_grid CG, enum side s);
+bit* get_wall(cellular_grid CG, enum side s);
 
 int set_wall(cellular_grid CG, enum side s, int* values);
 
