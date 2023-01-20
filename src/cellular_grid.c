@@ -37,7 +37,7 @@ void delete_cell_grid(cellular_grid CG){
 
 int get_cell(cellular_grid CG, int x, int y){
     if (!valid_coordinates_cell(CG,x,y)) return -1;
-    return get_bit(CG->grid,x+1,y+1);
+    return get_bit(CG->grid,x+1,y+1)?1:0;
 }
 
 int set_cell(cellular_grid CG, int x, int y, int new_value){
@@ -45,36 +45,30 @@ int set_cell(cellular_grid CG, int x, int y, int new_value){
     return set_bit(CG->grid,x+1,y+1,new_value>0);
 }
 
-bit* get_wall(cellular_grid CG, enum side s){
-    bit* values;
+void get_wall(cellular_grid CG, enum side s, int* values){
     switch (s){
     case North:
-        values = malloc(sizeof(bit)*CG->inner_width);
         for(int x=-1; x<=CG->inner_width; x++) values[x] = get_cell(CG,x,0);
         break;
     case South:
-        values = malloc(sizeof(bit)*CG->inner_width);
-        for(int x=-1; x<=CG->inner_width; x++) values[x] = get_cell(CG,x,CG->inner_height-1);
+        for(int x=-1; x<=CG->inner_width; x++) {
+            values[x] = get_cell(CG,x,CG->inner_height-1);
+        }
         break;
     
     case West:
-        values = malloc(sizeof(bit)*CG->inner_height);
-        for(int y=-1; y<=CG->inner_width; y++) values[y] = get_cell(CG,0,y);
+        for(int y=-1; y<=CG->inner_height; y++) values[y] = get_cell(CG,0,y);
         break;
     case East:
-        values = malloc(sizeof(bit)*CG->inner_height);
-        for(int y=-1; y<=CG->inner_width; y++) values[y] = get_cell(CG,CG->inner_width-1,y);
+        for(int y=-1; y<=CG->inner_height; y++) values[y] = get_cell(CG,CG->inner_width-1,y);
         break;
 
     default:
-        return NULL;
         break;
     }
-
-    return values;
 }
 
-int set_wall(cellular_grid CG, enum side s, bit* values){
+int set_wall(cellular_grid CG, enum side s, int* values){
     switch (s){
     case North:
         for(int x=-1; x<=CG->inner_width; x++) set_cell(CG,x,-1,values[x]?1:0);
@@ -84,10 +78,10 @@ int set_wall(cellular_grid CG, enum side s, bit* values){
         break;
     
     case West:
-        for(int y=-1; y<=CG->inner_width; y++) set_cell(CG,-1,y,values[y]?1:0);
+        for(int y=-1; y<=CG->inner_height; y++) set_cell(CG,-1,y,values[y]?1:0);
         break;
     case East:
-        for(int y=-1; y<=CG->inner_width; y++) set_cell(CG,CG->inner_width,y,values[y]?1:0);
+        for(int y=-1; y<=CG->inner_height; y++) set_cell(CG,CG->inner_width,y,values[y]?1:0);
         break;
 
     default:

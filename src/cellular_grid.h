@@ -7,10 +7,10 @@ enum side{North,East,South,West};
 struct _cellular_grid{
     grid grid;
     bit (* convolution) (bit *);
-    uint width;
-    uint height;    
-    uint inner_width;
-    uint inner_height;
+    int width;
+    int height;    
+    int inner_width;
+    int inner_height;
 };
 
 struct _cell_point{
@@ -31,9 +31,9 @@ int get_cell(cellular_grid CG, int x, int y);
 
 int set_cell(cellular_grid CG, int x, int y, int new_value);
 
-bit* get_wall(cellular_grid CG, enum side s);
+void get_wall(cellular_grid CG, enum side s, int* values);
 
-int set_wall(cellular_grid CG, enum side s, bit* values);
+int set_wall(cellular_grid CG, enum side s, int* values);
 
 void next_generation(cellular_grid CG);
 

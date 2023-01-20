@@ -72,254 +72,363 @@ bit conway (bit* neighbors){
     return self?(count==2 || count==3):(count==3);
 }
 
+bit conway_modified(bit* neighbors){
+    int count = 0;
+    bit self = neighbors[4];
+    for(int y=0; y<3; y++){
+        for(int x=0; x<3; x++){
+            if(y==1 && x==1) continue;
+            if(neighbors[y*3+x]) count++;
+        }
+    }
+    return self?(count>1 && count<4):(count==3);
+}
+
+bit crystallization(bit* neighbors){
+    int count = 0;
+    bit self = neighbors[4];
+    for(int y=0; y<3; y++){
+        for(int x=0; x<3; x++){
+            if(y==1 && x==1) continue;
+            if(neighbors[y*3+x]) count++;
+        }
+    }
+    if (count>2) return 0==1;
+    return self?self:(count==1);
+}
+
 /***************************** Communication functions *****************************/
 
+// /**
+//  * @brief Sends the walls of our local grid to our neighbors, while receiving theirs (might be ourself if one of the dimensions is 1).
+//  * Uses blocking communications without any optimisation, and without taking into account the case where one dimension is odd.
+//  * 
+//  * @param CG Our local Cellular Grid
+//  * @param comm The communication schema
+//  */
+// void transmit_walls_V1_0(cellular_grid CG, struct comm_schema comm){
+//     // Bit arrays used to send and receiving the walls
+//     bit HWall_recv[CG->height * 2];    
+//     bit* HWall_send;    
+//     bit VWall_recv[CG->width * 2];    
+//     bit* VWall_send;    
+
+//     MPI_Status status;
+//     MPI_Status * used_status = &status; // MPI_STATUS_IGNORE
+
+//     // Phase 1 : Horizontal Transfer
+//     switch (comm.x%2){
+//     case 0:
+//         // Sub-phase A : sending and receiving East
+//         HWall_send = get_wall(CG,East);
+//         MPI_Send( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 0 , MPI_COMM_WORLD);
+//         MPI_Recv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 0 , MPI_COMM_WORLD , used_status);
+//         set_wall(CG,East,HWall_recv);
+
+//         // printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+
+//         // Sub-phase B : sending and receiving West
+//         MPI_Recv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 1 , MPI_COMM_WORLD , used_status);
+//         set_wall(CG,West,HWall_recv);
+//         HWall_send = get_wall(CG,West);
+//         MPI_Send( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 1 , MPI_COMM_WORLD);
+
+//         // printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+
+//         break;
+
+//     case 1:
+//         // Sub-phase A : sending and receiving West
+//         MPI_Recv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 0 , MPI_COMM_WORLD , used_status);
+//         set_wall(CG,West,HWall_recv);
+//         HWall_send = get_wall(CG,West);
+//         MPI_Send( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 0 , MPI_COMM_WORLD);
+
+//         // printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+
+//         // Sub-phase B : sending and receiving East
+//         HWall_send = get_wall(CG,East);
+//         MPI_Send( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 1 , MPI_COMM_WORLD);
+//         MPI_Recv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 1 , MPI_COMM_WORLD , used_status);
+//         set_wall(CG,East,HWall_recv);
+
+//         // printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+
+//         break;
+
+//     default:
+//         break;
+//     }
+
+//     // Phase 2 : Vertical Transfer
+//     switch (comm.y%2){
+//     case 0:
+//         // Sub-phase A : sending and receiving North
+//         VWall_send = get_wall(CG,North);
+//         MPI_Send( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 0 , MPI_COMM_WORLD);
+//         MPI_Recv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 0 , MPI_COMM_WORLD , used_status);
+//         set_wall(CG,North,VWall_recv);
+
+//         // printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+
+//         // Sub-phase B : sending and receiving South
+//         MPI_Recv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 1 , MPI_COMM_WORLD , used_status);
+//         set_wall(CG,South,VWall_recv);
+//         VWall_send = get_wall(CG,South);
+//         MPI_Send( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 1 , MPI_COMM_WORLD);
+
+//         // printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+
+//         break;
+
+//     case 1:
+//         // Sub-phase A : sending and receiving South
+//         MPI_Recv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 0 , MPI_COMM_WORLD , used_status);
+//         set_wall(CG,South,VWall_recv);
+//         VWall_send = get_wall(CG,South);
+//         MPI_Send( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 0 , MPI_COMM_WORLD);
+
+//         // printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+
+//         // Sub-phase B : sending and receiving North
+//         VWall_send = get_wall(CG,North);
+//         MPI_Send( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 1 , MPI_COMM_WORLD);
+//         MPI_Recv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 1 , MPI_COMM_WORLD , used_status);
+//         set_wall(CG,North,VWall_recv);
+
+//         // printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+
+//         break;
+
+//     default:
+//         break;
+//     }
+// }
+
+// /**
+//  * @brief Sends the walls of our local grid to our neighbors, while receiving theirs (might be ourself if one of the dimensions is 1).
+//  * Uses non-blocking communications without any optimisation, and without taking into account the case where one dimension is odd.
+//  * 
+//  * @param CG Our local Cellular Grid
+//  * @param comm The communication schema
+//  */
+// void transmit_walls_V1_1(cellular_grid CG, struct comm_schema comm){
+//     // Bit arrays used to send and receiving the walls
+//     bit HWall_recv[CG->height * 2];    
+//     bit* HWall_send;    
+//     bit VWall_recv[CG->width * 2];    
+//     bit* VWall_send;    
+
+//     MPI_Status status;
+//     MPI_Status * used_status = &status; // MPI_STATUS_IGNORE
+//     MPI_Request req_send;
+//     MPI_Request req_recv;
+
+//     // Phase 1 : Horizontal Transfer
+//     switch (comm.x%2){
+//     case 0:
+//         // Sub-phase A : sending and receiving East
+//         HWall_send = get_wall(CG,East);
+//         MPI_Irecv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 0 , MPI_COMM_WORLD , &req_recv);
+//         MPI_Isend( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 0 , MPI_COMM_WORLD , &req_send);
+//         MPI_Wait( &req_recv , used_status);
+//         set_wall(CG,East,HWall_recv);
+//         MPI_Wait( &req_send , NULL);
+
+//         #ifdef V2
+//         printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+//         #endif
+
+//         // Sub-phase B : sending and receiving West
+//         HWall_send = get_wall(CG,West);
+//         MPI_Irecv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 1 , MPI_COMM_WORLD , &req_recv);
+//         MPI_Isend( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 1 , MPI_COMM_WORLD , &req_send);
+//         MPI_Wait( &req_recv , used_status);
+//         set_wall(CG,West,HWall_recv);
+//         MPI_Wait( &req_send , NULL);
+
+//         #ifdef V2
+//         printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+//         #endif
+
+//         break;
+
+//     case 1:
+//         // Sub-phase A : sending and receiving West
+//         HWall_send = get_wall(CG,West);
+//         MPI_Isend( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 0 , MPI_COMM_WORLD , &req_send);
+//         MPI_Irecv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 0 , MPI_COMM_WORLD , &req_recv);
+//         MPI_Wait( &req_recv , used_status);
+//         set_wall(CG,West,HWall_recv);
+//         MPI_Wait( &req_send , NULL);
+
+//         #ifdef V2
+//         printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+//         #endif
+
+//         // Sub-phase B : sending and receiving East
+//         HWall_send = get_wall(CG,East);
+//         MPI_Isend( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 1 , MPI_COMM_WORLD , &req_send);
+//         MPI_Irecv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 1 , MPI_COMM_WORLD , &req_recv);
+//         MPI_Wait( &req_recv , used_status);
+//         set_wall(CG,East,HWall_recv);
+//         MPI_Wait( &req_send , NULL);
+
+//         #ifdef V2
+//         printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+//         #endif
+
+//         break;
+
+//     default:
+//         break;
+//     }
+
+//     // Phase 2 : Vertical Transfer
+//     switch (comm.y%2){
+//     case 0:
+//         // Sub-phase A : sending and receiving North
+//         VWall_send = get_wall(CG,North);
+//         MPI_Isend( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 0 , MPI_COMM_WORLD , &req_send);
+//         MPI_Irecv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 0 , MPI_COMM_WORLD , &req_recv);
+//         MPI_Wait( &req_recv , used_status);
+//         set_wall(CG,North,VWall_recv);
+//         MPI_Wait( &req_send , NULL);
+
+//         #ifdef V2
+//         printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+//         #endif
+
+//         // Sub-phase B : sending and receiving South
+//         VWall_send = get_wall(CG,South);
+//         MPI_Isend( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 1 , MPI_COMM_WORLD , &req_send);
+//         MPI_Irecv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 1 , MPI_COMM_WORLD , &req_recv);
+//         MPI_Wait( &req_recv , used_status);
+//         set_wall(CG,South,VWall_recv);
+//         MPI_Wait( &req_send , NULL);
+
+//         #ifdef V2
+//         printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+//         #endif
+
+//         break;
+
+//     case 1:
+//         // Sub-phase A : sending and receiving South
+//         VWall_send = get_wall(CG,South);
+//         MPI_Irecv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 0 , MPI_COMM_WORLD , &req_recv);
+//         MPI_Isend( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 0 , MPI_COMM_WORLD , &req_send);
+//         MPI_Wait( &req_recv , used_status);
+//         set_wall(CG,South,VWall_recv);
+//         MPI_Wait( &req_send , NULL);
+
+//         #ifdef V2
+//         printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+//         #endif
+
+//         // Sub-phase B : sending and receiving North
+//         VWall_send = get_wall(CG,North);
+//         MPI_Irecv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 1 , MPI_COMM_WORLD , &req_recv);
+//         MPI_Isend( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 1 , MPI_COMM_WORLD , &req_send);
+//         MPI_Wait( &req_recv , used_status);
+//         set_wall(CG,North,VWall_recv);
+//         MPI_Wait( &req_send , NULL);
+
+//         #ifdef V2
+//         printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+//         #endif
+
+//         break;
+
+//     default:
+//         break;
+//     }
+// }
+
+
 /**
  * @brief Sends the walls of our local grid to our neighbors, while receiving theirs (might be ourself if one of the dimensions is 1).
- * Uses blocking communications without any optimisation, and without taking into account the case where one dimension is odd.
+ * Uses non-blocking communications without any optimisation.
  * 
  * @param CG Our local Cellular Grid
  * @param comm The communication schema
  */
-void transmit_walls_V1_0(cellular_grid CG, struct comm_schema comm){
+void transmit_walls_V2_0(cellular_grid CG, struct comm_schema comm){
     // Bit arrays used to send and receiving the walls
-    bit HWall_recv[CG->height * 2];    
-    bit* HWall_send;    
-    bit VWall_recv[CG->width * 2];    
-    bit* VWall_send;    
+    int HWall_recv_1[CG->height * 2];
+    int HWall_recv_2[CG->height * 2];    
+    int VWall_recv_1[CG->width * 2];   
+    int VWall_recv_2[CG->width * 2];      
+    int HWall_send_1[CG->height + 2];    
+    int HWall_send_2[CG->height + 2];    
+    int VWall_send_1[CG->width + 2];   
+    int VWall_send_2[CG->width + 2];   
 
     MPI_Status status;
     MPI_Status * used_status = &status; // MPI_STATUS_IGNORE
+    MPI_Request req_send_1, req_send_2;
+    MPI_Request req_recv_1, req_recv_2;
 
     // Phase 1 : Horizontal Transfer
-    switch (comm.x%2){
-    case 0:
-        // Sub-phase A : sending and receiving East
-        HWall_send = get_wall(CG,East);
-        MPI_Send( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 0 , MPI_COMM_WORLD);
-        MPI_Recv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 0 , MPI_COMM_WORLD , used_status);
-        set_wall(CG,East,HWall_recv);
+    get_wall(CG,East,HWall_send_1);
 
-        // printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+    MPI_Isend( HWall_send_1 , CG->height , MPI_INT , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 0 , MPI_COMM_WORLD , &req_send_1);
+    MPI_Irecv( HWall_recv_2 , CG->height * 2 , MPI_INT , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 0 , MPI_COMM_WORLD , &req_recv_2);
 
-        // Sub-phase B : sending and receiving West
-        MPI_Recv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 1 , MPI_COMM_WORLD , used_status);
-        set_wall(CG,West,HWall_recv);
-        HWall_send = get_wall(CG,West);
-        MPI_Send( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 1 , MPI_COMM_WORLD);
+    MPI_Wait( &req_recv_2 , used_status);
+    #ifdef V2
+    printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+    #endif
+    set_wall(CG,West,HWall_recv_2);
 
-        // printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
 
-        break;
+    get_wall(CG,West,HWall_send_2);
 
-    case 1:
-        // Sub-phase A : sending and receiving West
-        MPI_Recv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 0 , MPI_COMM_WORLD , used_status);
-        set_wall(CG,West,HWall_recv);
-        HWall_send = get_wall(CG,West);
-        MPI_Send( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 0 , MPI_COMM_WORLD);
+    MPI_Isend( HWall_send_2 , CG->height , MPI_INT , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 0 , MPI_COMM_WORLD , &req_send_2);
+    MPI_Irecv( HWall_recv_1 , CG->height * 2 , MPI_INT , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 0 , MPI_COMM_WORLD , &req_recv_1);
 
-        // printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+    MPI_Wait( &req_recv_1 , used_status);
+    #ifdef V2
+    printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+    #endif
+    set_wall(CG,East,HWall_recv_1);
 
-        // Sub-phase B : sending and receiving East
-        HWall_send = get_wall(CG,East);
-        MPI_Send( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 1 , MPI_COMM_WORLD);
-        MPI_Recv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 1 , MPI_COMM_WORLD , used_status);
-        set_wall(CG,East,HWall_recv);
 
-        // printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
-
-        break;
-
-    default:
-        break;
-    }
+    MPI_Wait( &req_send_1, NULL);
+    MPI_Wait( &req_send_2, NULL);
 
     // Phase 2 : Vertical Transfer
-    switch (comm.y%2){
-    case 0:
-        // Sub-phase A : sending and receiving North
-        VWall_send = get_wall(CG,North);
-        MPI_Send( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 0 , MPI_COMM_WORLD);
-        MPI_Recv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 0 , MPI_COMM_WORLD , used_status);
-        set_wall(CG,North,VWall_recv);
-
-        // printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
-
-        // Sub-phase B : sending and receiving South
-        MPI_Recv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 1 , MPI_COMM_WORLD , used_status);
-        set_wall(CG,South,VWall_recv);
-        VWall_send = get_wall(CG,South);
-        MPI_Send( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 1 , MPI_COMM_WORLD);
-
-        // printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
-
-        break;
-
-    case 1:
-        // Sub-phase A : sending and receiving South
-        MPI_Recv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 0 , MPI_COMM_WORLD , used_status);
-        set_wall(CG,South,VWall_recv);
-        VWall_send = get_wall(CG,South);
-        MPI_Send( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 0 , MPI_COMM_WORLD);
-
-        // printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
-
-        // Sub-phase B : sending and receiving North
-        VWall_send = get_wall(CG,North);
-        MPI_Send( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 1 , MPI_COMM_WORLD);
-        MPI_Recv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 1 , MPI_COMM_WORLD , used_status);
-        set_wall(CG,North,VWall_recv);
-
-        // printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
-
-        break;
-
-    default:
-        break;
+    get_wall(CG,South,VWall_send_1);
+    int n = 0;
+    for(int i=0; i<CG->width + 2; i++){
+        n+= VWall_send_1[i];
     }
+    printf("%d\n",n);fflush(stdout);
+
+    MPI_Isend( VWall_send_1 , CG->width , MPI_INT , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 0 , MPI_COMM_WORLD , &req_send_1);
+    MPI_Irecv( VWall_recv_2 , CG->width * 2 , MPI_INT , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 0 , MPI_COMM_WORLD , &req_recv_2);
+
+    MPI_Wait( &req_recv_2 , used_status);
+    #ifdef V2
+    printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+    #endif
+    set_wall(CG,North,VWall_recv_2);
+
+    get_wall(CG,North,VWall_send_2);
+
+    MPI_Isend( VWall_send_2 , CG->width , MPI_INT , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 0 , MPI_COMM_WORLD , &req_send_2);
+    MPI_Irecv( VWall_recv_1 , CG->width * 2 , MPI_INT , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 0 , MPI_COMM_WORLD , &req_recv_1);
+
+    MPI_Wait( &req_recv_1 , used_status);
+    #ifdef V2
+    printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
+    #endif
+    set_wall(CG,South,VWall_recv_1);
+
+
+    MPI_Wait( &req_send_1, NULL);
+    MPI_Wait( &req_send_2, NULL);
 }
-
-/**
- * @brief Sends the walls of our local grid to our neighbors, while receiving theirs (might be ourself if one of the dimensions is 1).
- * Uses non-blocking communications without any optimisation, and without taking into account the case where one dimension is odd.
- * 
- * @param CG Our local Cellular Grid
- * @param comm The communication schema
- */
-void transmit_walls_V1_1(cellular_grid CG, struct comm_schema comm){
-    // Bit arrays used to send and receiving the walls
-    bit HWall_recv[CG->height * 2];    
-    bit* HWall_send;    
-    bit VWall_recv[CG->width * 2];    
-    bit* VWall_send;    
-
-    MPI_Status status;
-    MPI_Status * used_status = &status; // MPI_STATUS_IGNORE
-    MPI_Request req_send;
-    MPI_Request req_recv;
-
-    // Phase 1 : Horizontal Transfer
-    switch (comm.x%2){
-    case 0:
-        // Sub-phase A : sending and receiving East
-        HWall_send = get_wall(CG,East);
-        MPI_Isend( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 0 , MPI_COMM_WORLD , &req_send);
-        MPI_Irecv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 0 , MPI_COMM_WORLD , &req_recv);
-        MPI_Wait( &req_recv , used_status);
-        set_wall(CG,East,HWall_recv);
-        MPI_Wait( &req_send , NULL);
-
-        #ifdef V2
-        printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
-        #endif
-
-        // Sub-phase B : sending and receiving West
-        HWall_send = get_wall(CG,West);
-        MPI_Isend( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 1 , MPI_COMM_WORLD , &req_send);
-        MPI_Irecv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 1 , MPI_COMM_WORLD , &req_recv);
-        MPI_Wait( &req_recv , used_status);
-        set_wall(CG,West,HWall_recv);
-        MPI_Wait( &req_send , NULL);
-
-        #ifdef V2
-        printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
-        #endif
-
-        break;
-
-    case 1:
-        // Sub-phase A : sending and receiving West
-        HWall_send = get_wall(CG,West);
-        MPI_Isend( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 0 , MPI_COMM_WORLD , &req_send);
-        MPI_Irecv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 0 , MPI_COMM_WORLD , &req_recv);
-        MPI_Wait( &req_recv , used_status);
-        set_wall(CG,West,HWall_recv);
-        MPI_Wait( &req_send , NULL);
-
-        #ifdef V2
-        printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
-        #endif
-
-        // Sub-phase B : sending and receiving East
-        HWall_send = get_wall(CG,East);
-        MPI_Isend( HWall_send , CG->height , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 1 , MPI_COMM_WORLD , &req_send);
-        MPI_Irecv( HWall_recv , CG->height * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 1 , MPI_COMM_WORLD , &req_recv);
-        MPI_Wait( &req_recv , used_status);
-        set_wall(CG,East,HWall_recv);
-        MPI_Wait( &req_send , NULL);
-
-        #ifdef V2
-        printf("Horizontal : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
-        #endif
-
-        break;
-
-    default:
-        break;
-    }
-
-    // Phase 2 : Vertical Transfer
-    switch (comm.y%2){
-    case 0:
-        // Sub-phase A : sending and receiving North
-        VWall_send = get_wall(CG,North);
-        MPI_Isend( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 0 , MPI_COMM_WORLD , &req_send);
-        MPI_Irecv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 0 , MPI_COMM_WORLD , &req_recv);
-        MPI_Wait( &req_recv , used_status);
-        set_wall(CG,North,VWall_recv);
-        MPI_Wait( &req_send , NULL);
-
-        #ifdef V2
-        printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
-        #endif
-
-        // Sub-phase B : sending and receiving South
-        VWall_send = get_wall(CG,South);
-        MPI_Isend( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 1 , MPI_COMM_WORLD , &req_send);
-        MPI_Irecv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 1 , MPI_COMM_WORLD , &req_recv);
-        MPI_Wait( &req_recv , used_status);
-        set_wall(CG,South,VWall_recv);
-        MPI_Wait( &req_send , NULL);
-
-        #ifdef V2
-        printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
-        #endif
-
-        break;
-
-    case 1:
-        // Sub-phase A : sending and receiving South
-        VWall_send = get_wall(CG,South);
-        MPI_Isend( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 0 , MPI_COMM_WORLD , &req_send);
-        MPI_Irecv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 0 , MPI_COMM_WORLD , &req_recv);
-        MPI_Wait( &req_recv , used_status);
-        set_wall(CG,South,VWall_recv);
-        MPI_Wait( &req_send , NULL);
-
-        #ifdef V2
-        printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
-        #endif
-
-        // Sub-phase B : sending and receiving North
-        VWall_send = get_wall(CG,North);
-        MPI_Isend( VWall_send , CG->width , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 1 , MPI_COMM_WORLD , &req_send);
-        MPI_Irecv( VWall_recv , CG->width * 2 , MPI_C_BOOL , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 1 , MPI_COMM_WORLD , &req_recv);
-        MPI_Wait( &req_recv , used_status);
-        set_wall(CG,North,VWall_recv);
-        MPI_Wait( &req_send , NULL);
-
-        #ifdef V2
-        printf("Vertical : Node %d received something from node %d.\n",comm.rank,status.MPI_SOURCE);fflush(stdout);
-        #endif
-
-        break;
-
-    default:
-        break;
-    }
-}
-
 
 /**
  * @brief Gather all the data to 1 node for later display
@@ -367,7 +476,9 @@ void gather_to_one(cellular_grid CG, struct comm_schema comm, int generation, MP
            displacements[i] = displacements[i-1]+incoming_sizes[i-1]; 
         }
     }
+
     MPI_Gatherv( *points , nb_points , mpi_point , gather_buff , incoming_sizes , displacements , mpi_point , comm.master , MPI_COMM_WORLD);
+    // if(comm.rank==comm.master) printf("%d vs %ld\n",total_points,sizeof(gather_buff)/sizeof(cell_point));
 
     // Saving result in svg
     if(comm.rank==comm.master){
@@ -398,7 +509,7 @@ int automata_loop(int argc, char** argv){
     comm.y = comm.rank/comm.width;
     comm.x = comm.rank%comm.width;
 
-    comm.master = 0; // TODO : Maybe have a master node be elected (or determine who can display/save the result on user's machine)
+    comm.master = 0; 
 
     // Automata grid creation
 
@@ -418,11 +529,22 @@ int automata_loop(int argc, char** argv){
     #endif
 
     // Automata grid values initialization at random
-    time_t t;
-    srand((unsigned) time(&t) + comm.rank);
+    // time_t t;
+    // srand((unsigned) time(&t) + comm.rank);
 
-    for(int i=0; i<local_width*local_height/2; i++){
-        set_cell(CG,rand()%local_width,rand()%local_height,1);
+    // for(int i=0; i<local_width*local_height/10; i++){
+    //     set_cell(CG,rand()%local_width,rand()%local_height,1);
+    // }
+
+    if(comm.rank==comm.master){
+        // set_cell(CG,0,1,1);
+        // set_cell(CG,1,2,1);
+        // set_cell(CG,2,0,1);
+        // set_cell(CG,2,1,1);
+        // set_cell(CG,2,2,1);
+        set_cell(CG,1,4,1);
+        set_cell(CG,2,4,1);
+        set_cell(CG,3,4,1);
     }
 
     // Creating rendering (see rendering.h/.c)
@@ -472,8 +594,9 @@ int automata_loop(int argc, char** argv){
         gather_to_one(CG,comm,i,cell_point_type); 
 
         // Next Generation computation
-        transmit_walls_V1_1(CG,comm);
+        transmit_walls_V2_0(CG,comm);
         next_generation(CG);
+        MPI_Barrier(MPI_COMM_WORLD);
 
         #ifdef V1
         if(comm.rank==comm.master) {

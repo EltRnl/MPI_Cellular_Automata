@@ -97,8 +97,10 @@ void create_render(char* unused_string, int width, int height){
 void render_generation(cell_point* points, int nb_points){
     XClearWindow(main_screen -> dpy, main_screen -> w);
     int i;
-    for (i=0; i<nb_points; i++)
+    for (i=0; i<nb_points; i++){
         XDrawPoint(main_screen -> dpy, main_screen -> w, main_screen -> gc, points[i].x, points[i].y);
+    }
+    XFlush(main_screen -> dpy);
 }
 
 void finish_render(){
