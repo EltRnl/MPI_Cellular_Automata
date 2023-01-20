@@ -48,19 +48,17 @@ int set_cell(cellular_grid CG, int x, int y, int new_value){
 void get_wall(cellular_grid CG, enum side s, int* values){
     switch (s){
     case North:
-        for(int x=-1; x<=CG->inner_width; x++) values[x] = get_cell(CG,x,0);
+        for(int x=-1; x<=CG->inner_width; x++) values[x+1] = get_cell(CG,x,0);
         break;
     case South:
-        for(int x=-1; x<=CG->inner_width; x++) {
-            values[x] = get_cell(CG,x,CG->inner_height-1);
-        }
+        for(int x=-1; x<=CG->inner_width; x++) values[x+1] = get_cell(CG,x,CG->inner_height-1);
         break;
     
     case West:
-        for(int y=-1; y<=CG->inner_height; y++) values[y] = get_cell(CG,0,y);
+        for(int y=-1; y<=CG->inner_height; y++) values[y+1] = get_cell(CG,0,y);
         break;
     case East:
-        for(int y=-1; y<=CG->inner_height; y++) values[y] = get_cell(CG,CG->inner_width-1,y);
+        for(int y=-1; y<=CG->inner_height; y++) values[y+1] = get_cell(CG,CG->inner_width-1,y);
         break;
 
     default:
@@ -71,17 +69,17 @@ void get_wall(cellular_grid CG, enum side s, int* values){
 int set_wall(cellular_grid CG, enum side s, int* values){
     switch (s){
     case North:
-        for(int x=-1; x<=CG->inner_width; x++) set_cell(CG,x,-1,values[x]?1:0);
+        for(int x=-1; x<=CG->inner_width; x++) set_cell(CG,x,-1,values[x+1]);
         break;
     case South:
-        for(int x=-1; x<=CG->inner_width; x++) set_cell(CG,x,CG->inner_height,values[x]?1:0);
+        for(int x=-1; x<=CG->inner_width; x++) set_cell(CG,x,CG->inner_height,values[x+1]);
         break;
     
     case West:
-        for(int y=-1; y<=CG->inner_height; y++) set_cell(CG,-1,y,values[y]?1:0);
+        for(int y=-1; y<=CG->inner_height; y++) set_cell(CG,-1,y,values[y+1]?1:0);
         break;
     case East:
-        for(int y=-1; y<=CG->inner_height; y++) set_cell(CG,CG->inner_width,y,values[y]?1:0);
+        for(int y=-1; y<=CG->inner_height; y++) set_cell(CG,CG->inner_width,y,values[y+1]);
         break;
 
     default:

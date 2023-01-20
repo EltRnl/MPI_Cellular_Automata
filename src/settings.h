@@ -1,6 +1,6 @@
-#define WIDTH 100
-#define HEIGHT 100
-#define ITERATIONS 10
+#define WIDTH 1000
+#define HEIGHT 500
+#define ITERATIONS 1000
 #define OUTPUT_PATH "./output"
-#define SVG_GEN_DURATION "50ms"
-#define DISPLAY_TIME_INTERVAL_U 1000000
+#define SVG_GEN_DURATION "1s"
+#define DISPLAY_TIME_INTERVAL_U 20000

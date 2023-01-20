@@ -16,22 +16,22 @@ ifeq ($(VERBOSE),0)
 	VARFLAGS += -DV0
 endif
 ifeq ($(VERBOSE),1)
-	VARFLAGS += -DV1
+	VARFLAGS += -DV1 -DV0
 endif
 ifeq ($(VERBOSE),2)
-	VARFLAGS += -DV2
+	VARFLAGS += -DV2 -DV1 -DV0
 endif
 
 ## Choice of display :
 ## 		x11 : X11 display on screen
 ## 		svg : Saving as SVG file
 ## 		default : No display or file save (used for performance mesurement)
-DISPLAY = x11
+DISPLAY_MODE = x11
 
-ifeq ($(DISPLAY), x11)
+ifeq ($(DISPLAY_MODE), x11)
 	VARFLAGS += -DX11
 	LDFLAGS += -L/usr/X11/lib -lX11
-else ifeq ($(DISPLAY), svg)
+else ifeq ($(DISPLAY_MODE), svg)
 	VARFLAGS += -DSVG
 else
 	VARFLAGS += -DNORENDER
