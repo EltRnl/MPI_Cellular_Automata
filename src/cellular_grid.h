@@ -14,13 +14,14 @@ struct _cellular_grid{
 };
 
 struct _cell_point{
+    int gen;
     int x;
     int y;
 };
 
 
 typedef struct _cellular_grid * cellular_grid;
-typedef struct _cell_point * cell_point;
+typedef struct _cell_point cell_point;
 
 cellular_grid create_cell_grid(uint width, uint height, bit (* convolution) (bit *));
 
@@ -32,8 +33,10 @@ int set_cell(cellular_grid CG, int x, int y, int new_value);
 
 bit* get_wall(cellular_grid CG, enum side s);
 
-int set_wall(cellular_grid CG, enum side s, int* values);
+int set_wall(cellular_grid CG, enum side s, bit* values);
 
 void next_generation(cellular_grid CG);
 
 void print_cell_grid(cellular_grid CG);
+
+int generate_svg_points(cellular_grid CG, int generation, cell_point** points);

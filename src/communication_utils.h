@@ -5,4 +5,5 @@ struct comm_schema {
     int height;
     int x;
     int y;
+    int master;
 };
