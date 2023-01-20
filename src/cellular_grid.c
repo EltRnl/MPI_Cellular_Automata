@@ -120,26 +120,3 @@ void print_cell_grid(cellular_grid CG){
         printf("\n");
     }	
 }
-
-int generate_svg_points(cellular_grid CG, int generation, cell_point** points){
-    int nb_points = 0;
-    for (int y=0; y<CG->inner_height; y++) for (int x=0; x<CG->inner_width; x++) if (get_cell(CG,x,y) == 1) nb_points++;
-
-    *points = (cell_point*)malloc(nb_points*sizeof(cell_point));
-    cell_point* list = *points;
-    int index = 0;
-    for (int y=0; y<CG->inner_height; y++)
-        for (int x=0; x<CG->inner_width; x++){
-            if(index==nb_points) break;
-
-            if (get_cell(CG,x,y) == 1){
-                list[index].gen = generation;
-                list[index].x = x;
-                list[index].y = y;
-                index++;
-            }
-        }
-
-    return nb_points;
-
-}

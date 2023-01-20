@@ -38,5 +38,3 @@ int set_wall(cellular_grid CG, enum side s, bit* values);
 void next_generation(cellular_grid CG);
 
 void print_cell_grid(cellular_grid CG);
-
-int generate_svg_points(cellular_grid CG, int generation, cell_point** points);
