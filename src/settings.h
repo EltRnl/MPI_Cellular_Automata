@@ -1,5 +1,6 @@
-#define WIDTH 10
-#define HEIGHT 10
-#define ITERATIONS 20
-#define SVG_FILE_PATH "./output/automata.svg"
-#define SVG_GEN_DURATION "500ms"
+#define WIDTH 100
+#define HEIGHT 100
+#define ITERATIONS 10
+#define OUTPUT_PATH "./output"
+#define SVG_GEN_DURATION "50ms"
+#define DISPLAY_TIME_INTERVAL_U 1000000

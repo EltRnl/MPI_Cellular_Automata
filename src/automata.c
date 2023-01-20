@@ -1,6 +1,7 @@
 #include "communication_utils.h"
 #include "cellular_grid.h"
 #include "settings.h"
+#include "rendering.h"
 
 #include <time.h>
 #include <unistd.h>
@@ -32,9 +33,9 @@ int position_to_rank(int width, int height, int x, int y){
     return x+y*width;
 }
 
-/***************************** SVG saving function *****************************/
+/***************************** Point generation from Cellular Grid *****************************/
 
-int generate_svg_points(cellular_grid CG, int generation, cell_point** points, struct comm_schema comm){
+int generate_points_from_CG(cellular_grid CG, int generation, cell_point** points, struct comm_schema comm){
     int nb_points = 0;
     for (int y=0; y<CG->inner_height; y++) for (int x=0; x<CG->inner_width; x++) if (get_cell(CG,x,y) == 1) nb_points++;
 
@@ -55,15 +56,6 @@ int generate_svg_points(cellular_grid CG, int generation, cell_point** points, s
 
     return nb_points;
 
-}
-
-void save_generation_svg(cell_point* points, int nb_points, FILE* svg){
-    for(int i=0; i<nb_points; i++){
-        if(points[i].gen == 0)
-            fprintf(svg,"<rect width='0' height='1' x='%d' y='%d' fill='black'><animate id='gen%d' attributeName='width' values='1' begin='0s;gen%d.end' dur='%s'/></rect>\n",points[i].x,points[i].y,points[i].gen,ITERATIONS-1,SVG_GEN_DURATION);
-        else
-            fprintf(svg,"<rect width='0' height='1' x='%d' y='%d' fill='black'><animate id='gen%d' attributeName='width' values='1' begin='gen%d.end' dur='%s'/></rect>\n",points[i].x,points[i].y,points[i].gen,points[i].gen - 1,SVG_GEN_DURATION);
-    }
 }
 
 /***************************** Convolution functions *****************************/
@@ -336,10 +328,13 @@ void transmit_walls_V1_1(cellular_grid CG, struct comm_schema comm){
  * @param comm The communication schema
  * @param master The rank of the node choosen to gather everything
  */
-void gather_to_one(cellular_grid CG, struct comm_schema comm, int generation, FILE* svg, MPI_Datatype mpi_point){
+void gather_to_one(cellular_grid CG, struct comm_schema comm, int generation, MPI_Datatype mpi_point){
     // Retrieving points to send
     cell_point ** points = malloc(sizeof(cell_point*));
-    int nb_points = generate_svg_points(CG,generation,points,comm);
+    int nb_points = generate_points_from_CG(CG,generation,points,comm);
+    #ifdef V2
+    printf("Process #%d has %d points.\n",comm.rank,nb_points);fflush(stdout);
+    #endif
 
     // Gathering the number of points each of the processes have
     int *incoming_sizes = malloc(sizeof(int)*comm.size);
@@ -351,6 +346,16 @@ void gather_to_one(cellular_grid CG, struct comm_schema comm, int generation, FI
         if (max_points<incoming_sizes[i]) max_points = incoming_sizes[i];
         total_points += incoming_sizes[i];
     }
+
+    #ifdef V2
+    if(comm.rank==comm.master) {
+        printf("Process #0 has gathered %d points.\n",total_points);fflush(stdout);
+        for(int i=0; i<comm.size; i++){
+            printf("Gathered %d is %d.\n",i,incoming_sizes[i]);fflush(stdout);
+        }
+    }
+    
+    #endif
 
     // Gathering the points
     cell_point * gather_buff;
@@ -366,12 +371,14 @@ void gather_to_one(cellular_grid CG, struct comm_schema comm, int generation, FI
 
     // Saving result in svg
     if(comm.rank==comm.master){
-        save_generation_svg(gather_buff,total_points,svg);
+        render_generation(gather_buff,total_points);
         free(gather_buff);
     }
     free(incoming_sizes);
     free(*points);
     free(points);
+
+    MPI_Barrier( MPI_COMM_WORLD);
 }
 
 /***************************** Main loop function *****************************/
@@ -418,12 +425,9 @@ int automata_loop(int argc, char** argv){
         set_cell(CG,rand()%local_width,rand()%local_height,1);
     }
 
-    // Creating SVG file
-    FILE* fp;
+    // Creating rendering (see rendering.h/.c)
     if(comm.rank == comm.master){
-        fp = fopen(SVG_FILE_PATH,"w");
-        fprintf(fp,"<svg version='1.1' viewBox='0 0 %d %d' xmlns='http://www.w3.org/2000/svg'>\n",WIDTH,HEIGHT);
-        fprintf(fp,"<rect width='%d' height='%d' x='0' y='0' fill='white'/>\n",WIDTH,HEIGHT);
+        create_render(OUTPUT_PATH,WIDTH,HEIGHT);
     }
 
     // Creating MPI structure later used for gathering
@@ -454,9 +458,9 @@ int automata_loop(int argc, char** argv){
 
 
     // Main loop
-    clock_t start, end;        
 
     #ifdef V1
+    clock_t start, end;        
     if(comm.rank==comm.master)
         printf("Main loop is starting.\n");
     #endif
@@ -465,10 +469,10 @@ int automata_loop(int argc, char** argv){
         if(comm.rank==comm.master) start = clock();
         #endif
         // Gather generations points to one process so it can be saved in svg
-        gather_to_one(CG,comm,i,fp,cell_point_type); 
+        gather_to_one(CG,comm,i,cell_point_type); 
 
         // Next Generation computation
-        transmit_walls_V1_0(CG,comm);
+        transmit_walls_V1_1(CG,comm);
         next_generation(CG);
 
         #ifdef V1
@@ -478,14 +482,11 @@ int automata_loop(int argc, char** argv){
         }
         #endif
 
-        // // Time skip
-        // usleep(TIME_INTERVAL_U);
+        // Time skip
+        usleep(DISPLAY_TIME_INTERVAL_U);
     }
 
-    if(comm.rank==comm.master){
-        fprintf(fp,"</svg>");
-        fclose(fp);
-    }
+    if(comm.rank==comm.master) finish_render();
 
     MPI_Finalize();
     return 0;

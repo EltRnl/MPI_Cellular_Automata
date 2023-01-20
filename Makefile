@@ -1,22 +1,40 @@
 CC = mpicc
-CFLAGS = -g -lm
+CFLAGS = -g -Wall
+LDFLAGS = -lm
+VARFLAGS = 
 
-OBJECTS = grid.o cellular_grid.o automata.o
+OBJECTS = grid.o cellular_grid.o rendering.o automata.o
 
 # Variables
-## 0 : No prints
-## 1 : Print per generations (time spent)
-## 2 : All prints (all processes)
-VERBOSE = 1
+## How verbose the application is :
+## 		0 : No prints
+## 		1 : Print per generations (time spent)
+## 		2 : All prints (all processes)
+VERBOSE = 0
 
 ifeq ($(VERBOSE),0)
-	CFLAGS += -DV0
+	VARFLAGS += -DV0
 endif
 ifeq ($(VERBOSE),1)
-	CFLAGS += -DV1
+	VARFLAGS += -DV1
 endif
 ifeq ($(VERBOSE),2)
-	CFLAGS += -DV2
+	VARFLAGS += -DV2
+endif
+
+## Choice of display :
+## 		x11 : X11 display on screen
+## 		svg : Saving as SVG file
+## 		default : No display or file save (used for performance mesurement)
+DISPLAY = x11
+
+ifeq ($(DISPLAY), x11)
+	VARFLAGS += -DX11
+	LDFLAGS += -L/usr/X11/lib -lX11
+else ifeq ($(DISPLAY), svg)
+	VARFLAGS += -DSVG
+else
+	VARFLAGS += -DNORENDER
 endif
 
 # Compilation commands
@@ -24,13 +42,13 @@ endif
 all: main
 
 main: main.c $(OBJECTS)
-	$(CC) $(OBJECTS) main.c -o main $(CFLAGS)
+	$(CC) $(VARFLAGS) $(OBJECTS) main.c -o main $(CFLAGS) $(LDFLAGS)
 
 %.o: src/%.c
-	$(CC) -c $^ $(CFLAGS)
+	$(CC) $(VARFLAGS) -c $^ $(CFLAGS) 
 
 run : main
-	mpirun -np 8 --use-hwthread-cpus main
+	mpirun -np 8 --use-hwthread-cpus -x DISPLAY=:0 main
 
 clean:
 	rm main $(OBJECTS)
