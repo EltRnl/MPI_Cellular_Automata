@@ -25,6 +25,8 @@ cellular_grid create_cell_grid(uint width, uint height, bit (* convolution) (bit
     CG->height = height + 2;    
     CG->inner_width = width;
     CG->inner_height = height;
+
+    return CG;
 }
 
 void delete_cell_grid(cellular_grid CG){
