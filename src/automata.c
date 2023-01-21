@@ -35,7 +35,7 @@ int position_to_rank(int width, int height, int x, int y){
 
 /***************************** Point generation from Cellular Grid *****************************/
 
-int generate_points_from_CG(cellular_grid CG, int generation, cell_point** points, struct comm_schema comm){
+int generate_points_from_CG(cellular_grid CG, cell_point** points, struct comm_schema comm){
     int nb_points = 0;
     for (int y=0; y<CG->inner_height; y++) for (int x=0; x<CG->inner_width; x++) if (get_cell(CG,x,y) == 1) nb_points++;
 
@@ -47,7 +47,6 @@ int generate_points_from_CG(cellular_grid CG, int generation, cell_point** point
             if(index==nb_points) break;
 
             if (get_cell(CG,x,y) == 1){
-                list[index].gen = generation;
                 list[index].x = x + comm.x * rounded_division(WIDTH,comm.width);
                 list[index].y = y + comm.y * rounded_division(HEIGHT,comm.height);
                 index++;
@@ -107,7 +106,7 @@ bit crystallization(bit* neighbors){
  * @param comm The communication schema
  */
 void transmit_walls(cellular_grid CG, struct comm_schema comm){
-    // Bit arrays used to send and receiving the walls
+    // Int arrays used to send and receiving the walls
     int HWall_recv_1[CG->height * 2];
     int HWall_recv_2[CG->height * 2];    
     int VWall_recv_1[CG->width * 2];   
@@ -117,12 +116,15 @@ void transmit_walls(cellular_grid CG, struct comm_schema comm){
     int VWall_send_1[CG->width + 2];   
     int VWall_send_2[CG->width + 2];   
 
+    // Status and Requests used or unused
     MPI_Status status;
     MPI_Status * used_status = &status; // MPI_STATUS_IGNORE
     MPI_Request req_send_1, req_send_2;
     MPI_Request req_recv_1, req_recv_2;
 
     // Phase 1 : Horizontal Transfer
+
+    // Sub-phase a : send East, receive West
     get_wall(CG,East,HWall_send_1);
 
     MPI_Isend( HWall_send_1 , CG->height , MPI_INT , position_to_rank(comm.width,comm.height,comm.x+1,comm.y) , 0 , MPI_COMM_WORLD , &req_send_1);
@@ -134,7 +136,7 @@ void transmit_walls(cellular_grid CG, struct comm_schema comm){
     #endif
     set_wall(CG,West,HWall_recv_2);
 
-
+    // Sub-phase b : send West, receive East
     get_wall(CG,West,HWall_send_2);
 
     MPI_Isend( HWall_send_2 , CG->height , MPI_INT , position_to_rank(comm.width,comm.height,comm.x-1,comm.y) , 0 , MPI_COMM_WORLD , &req_send_2);
@@ -146,11 +148,14 @@ void transmit_walls(cellular_grid CG, struct comm_schema comm){
     #endif
     set_wall(CG,East,HWall_recv_1);
 
-
+    // We wait for sends just in case
     MPI_Wait( &req_send_1, NULL);
     MPI_Wait( &req_send_2, NULL);
 
+
     // Phase 2 : Vertical Transfer
+
+    // Sub-phase a : send South, receive North
     get_wall(CG,South,VWall_send_1);
 
     MPI_Isend( VWall_send_1 , CG->width , MPI_INT , position_to_rank(comm.width,comm.height,comm.x,comm.y+1) , 0 , MPI_COMM_WORLD , &req_send_1);
@@ -162,6 +167,7 @@ void transmit_walls(cellular_grid CG, struct comm_schema comm){
     #endif
     set_wall(CG,North,VWall_recv_2);
 
+    // Sub-phase b : send North, receive South
     get_wall(CG,North,VWall_send_2);
 
     MPI_Isend( VWall_send_2 , CG->width , MPI_INT , position_to_rank(comm.width,comm.height,comm.x,comm.y-1) , 0 , MPI_COMM_WORLD , &req_send_2);
@@ -179,7 +185,7 @@ void transmit_walls(cellular_grid CG, struct comm_schema comm){
 }
 
 /**
- * @brief Gather all the data to 1 node for later display
+ * @brief Gather all the data to 1 node for rendering
  * 
  * @param CG Our local Cellular Grid
  * @param comm The communication schema
@@ -188,7 +194,7 @@ void transmit_walls(cellular_grid CG, struct comm_schema comm){
 void gather_to_one(cellular_grid CG, struct comm_schema comm, int generation, MPI_Datatype mpi_point){
     // Retrieving points to send
     cell_point ** points = malloc(sizeof(cell_point*));
-    int nb_points = generate_points_from_CG(CG,generation,points,comm);
+    int nb_points = generate_points_from_CG(CG,points,comm);
     #ifdef V2
     printf("Process #%d has %d points.\n",comm.rank,nb_points);fflush(stdout);
     #endif
@@ -197,12 +203,8 @@ void gather_to_one(cellular_grid CG, struct comm_schema comm, int generation, MP
     int *incoming_sizes = malloc(sizeof(int)*comm.size);
     MPI_Gather( &nb_points , 1 , MPI_INT , incoming_sizes , 1 , MPI_INT , comm.master , MPI_COMM_WORLD);
 
-    int max_points = 0;
     int total_points = 0;
-    for(int i=0; comm.rank==comm.master && i<comm.size; i++){
-        if (max_points<incoming_sizes[i]) max_points = incoming_sizes[i];
-        total_points += incoming_sizes[i];
-    }
+    for(int i=0; comm.rank==comm.master && i<comm.size; i++)  total_points += incoming_sizes[i];
 
     #ifdef V2
     if(comm.rank==comm.master) {
@@ -227,9 +229,9 @@ void gather_to_one(cellular_grid CG, struct comm_schema comm, int generation, MP
 
     MPI_Gatherv( *points , nb_points , mpi_point , gather_buff , incoming_sizes , displacements , mpi_point , comm.master , MPI_COMM_WORLD);
 
-    // Saving result in svg
+    // Rendering generation
     if(comm.rank==comm.master){
-        render_generation(gather_buff,total_points);
+        render_generation(gather_buff,total_points,generation);
         free(gather_buff);
     }
     free(incoming_sizes);
@@ -340,9 +342,6 @@ int automata_loop(int argc, char** argv){
             printf("Generation %d done in %lfs.\n",i,(double)(end-start)/CLOCKS_PER_SEC);
         }
         #endif
-
-        // Time skip
-        usleep(DISPLAY_TIME_INTERVAL_U);
     }
 
     if(comm.rank==comm.master) finish_render();

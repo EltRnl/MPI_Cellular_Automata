@@ -33,12 +33,12 @@ void create_render(char* path_to_svg_folder, int width, int height){
     fprintf(svg,"<rect width='%d' height='%d' x='0' y='0' fill='white'/>\n",width,height);
 }
 
-void render_generation(cell_point* points, int nb_points){
+void render_generation(cell_point* points, int nb_points, int generation){
     for(int i=0; i<nb_points; i++){
-        if(points[i].gen == 0)
-            fprintf(svg,"<rect width='0' height='1' x='%d' y='%d' fill='black'><animate id='gen%d' attributeName='width' values='1' begin='0s;gen%d.end' dur='%s'/></rect>\n",points[i].x,points[i].y,points[i].gen,ITERATIONS-1,SVG_GEN_DURATION);
+        if(generation == 0)
+            fprintf(svg,"<rect width='0' height='1' x='%d' y='%d' fill='black'><animate id='gen%d' attributeName='width' values='1' begin='0s;gen%d.end' dur='%s'/></rect>\n",points[i].x,points[i].y,generation,ITERATIONS-1,SVG_GEN_DURATION);
         else
-            fprintf(svg,"<rect width='0' height='1' x='%d' y='%d' fill='black'><animate id='gen%d' attributeName='width' values='1' begin='gen%d.end' dur='%s'/></rect>\n",points[i].x,points[i].y,points[i].gen,points[i].gen - 1,SVG_GEN_DURATION);
+            fprintf(svg,"<rect width='0' height='1' x='%d' y='%d' fill='black'><animate id='gen%d' attributeName='width' values='1' begin='gen%d.end' dur='%s'/></rect>\n",points[i].x,points[i].y,generation,generation - 1,SVG_GEN_DURATION);
     }
 }
 
@@ -94,13 +94,16 @@ void create_render(char* unused_string, int width, int height){
     }
 }
 
-void render_generation(cell_point* points, int nb_points){
+void render_generation(cell_point* points, int nb_points, int dull){
     XClearWindow(main_screen -> dpy, main_screen -> w);
     int i;
     for (i=0; i<nb_points; i++){
         XDrawPoint(main_screen -> dpy, main_screen -> w, main_screen -> gc, points[i].x, points[i].y);
     }
     XFlush(main_screen -> dpy);
+
+    // Time skip
+    usleep(DISPLAY_TIME_INTERVAL_U);
 }
 
 void finish_render(){
@@ -116,7 +119,7 @@ void finish_render(){
 
 void create_render(char* path_to_svg_folder, int width, int height){}
 
-void render_generation(cell_point* points, int nb_points){}
+void render_generation(cell_point* points, int nb_points, int generation){}
 
 void finish_render(){}
 
