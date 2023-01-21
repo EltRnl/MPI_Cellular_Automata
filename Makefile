@@ -51,4 +51,4 @@ run : main
 	mpirun -np 8 --use-hwthread-cpus -x DISPLAY=:0 main
 
 clean:
-	rm main $(OBJECTS)
+	rm main $(OBJECTS) ./output/*.svg *.svg
